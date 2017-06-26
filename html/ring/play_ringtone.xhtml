@@ -1,0 +1,44 @@
+<html>
+<body>
+<bsh>
+import android.app.Service;
+import android.media.AudioManager;
+import android.media.RingtoneManager;
+import android.content.Context;
+import android.content.SharedPreferences;
+
+service = (Service) server.props.get("serviceContext");
+audiomanager = service.getSystemService(Context.AUDIO_SERVICE);
+ringmanager = new RingtoneManager(service);
+
+if(serverGet("ringtone_playing") == null && parameters.get("play") != null) {
+	ringtone = ringmanager.getRingtone(service, ringmanager.getDefaultUri(RingtoneManager.TYPE_RINGTONE));
+	serverPut("ringtone_playing", ringtone);
+	ringerVol = audiomanager.getStreamVolume(AudioManager.STREAM_RING);
+	serverPut("ringerVol", ringerVol);
+
+	// Set volume to max
+	audiomanager.setStreamVolume(AudioManager.STREAM_RING, audiomanager.getStreamMaxVolume(AudioManager.STREAM_RING), 0);
+
+	ringtone.play();
+	while(ringtone.isPlaying()) {}
+
+	//Set volume to old value
+	audiomanager.setStreamVolume(AudioManager.STREAM_RING, ringerVol, 0);
+	serverPut("ringtone_playing", null);
+}
+else if(serverGet("ringtone_playing") != null &&  parameters.get("stop") != null) {
+	ringtone = serverGet("ringtone_playing");
+	// Wait for ringtone to stop
+	while(ringtone.isPlaying()) { ringtone.stop(); }
+	
+	ringerVol = serverGet("ringerVol");
+	if(ringerVol != null) {
+		audiomanager.setStreamVolume(AudioManager.STREAM_RING, ringerVol, 0);
+	}
+	serverPut("ringtone_playing", null);
+}
+</bsh>
+</body>
+</html>
+
